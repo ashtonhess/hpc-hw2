@@ -42,6 +42,8 @@ int main(int argc, char*argv[]) {
     }
     int N = stoi(argv[2]);
     int generations = stoi(argv[3]);
+    int processes = stoi(argv[4]);
+    cout<<"Processes: "<<processes<<endl;
 
     Node**testArray;
     FileIO testfio = FileIO();
@@ -56,7 +58,7 @@ int main(int argc, char*argv[]) {
 
     //put 2d array into shared memory.
     int shmId; 			// ID of shared memory segment
-    key_t shmKey = 123460; 		// key to pass to shmget(), key_t is an IPC key type defined in sys/types
+    key_t shmKey = 123461; 		// key to pass to shmget(), key_t is an IPC key type defined in sys/types
     int shmFlag = IPC_CREAT | 0666; // Flag to create with rw permissions
     if ((shmId = shmget(shmKey, sizeof(Node)*N*(generations+7), shmFlag)) < 0)
     {
@@ -73,10 +75,20 @@ int main(int argc, char*argv[]) {
     cout<<"HERE: "<<shtree[0].x<<endl;
     cout<<"HERE: "<<testArray[0][0].x<<endl;
 
-    int startCol1 = 0;
-    int stopCol1 = N/2;
-    int startCol2 = N/2;
-    int stopCol2 = N;
+    if(processes==1){
+        auto ustart2 = chrono::high_resolution_clock::now();
+        grow_tree_array_parallel2(shtree, argv, 350, 0, N);
+        auto ustop2 = chrono::high_resolution_clock::now();
+        auto uduration2 = chrono::duration_cast<chrono::milliseconds>(ustop2-ustart2);
+    cout<<"Time (ms): "<<uduration2.count()<<endl;
+    }
+    if(processes==2){
+        int startCol1 = 0;
+        int stopCol1 = N/2;
+        int startCol2 = N/2;
+        int stopCol2 = N;
+    
+    
 //    grow_tree_array_parallel(testArray, argv, 350, startCol1, stopCol1);
 //    grow_tree_array_parallel(testArray, argv, 350, startCol2, stopCol2);
 //    grow_tree_array_parallel2(shtree, argv, 350, startCol1, stopCol1);
@@ -168,7 +180,7 @@ int main(int argc, char*argv[]) {
     //     }
     // }
     writeTreeToCsv_array_single(shtree, N, generations);
-
+    }
 //    writeTreeToCsv_array(testArray, N, generations);
 
 
@@ -383,7 +395,7 @@ void grow_tree_array(Node**tree, char*argv[], int lines){
 //            }
 //            collision_check2(tree, N, generations, existingGens+i, last_deltaX);
         }
-        cout<<"Gen "<<i<<" done."<<endl;
+        // cout<<"Gen "<<i<<" done."<<endl;
 //        cout<<"Checking for collisions..."<<endl;
         collision_check(tree, N, generations, existingGens+i, last_deltaX);
     }
@@ -421,7 +433,7 @@ void grow_tree_array_parallel(Node**tree, char*argv[], int lines, int start_col,
 //            }
 //            collision_check2(tree, N, generations, existingGens+i, last_deltaX);
         }
-        cout<<"Gen "<<i<<" done."<<endl;
+        // cout<<"Gen "<<i<<" done."<<endl;
 //        cout<<"Checking for collisions..."<<endl;
         collision_check(tree, N, generations, existingGens+i, last_deltaX);
     }
@@ -471,7 +483,7 @@ void grow_tree_array_parallel2(Node*shtree, char*argv[], int lines, int start_co
 //            }
 //            collision_check2(tree, N, generations, existingGens+i, last_deltaX);
         }
-        cout<<"Gen "<<i<<" done."<<endl;
+        // cout<<"Gen "<<i<<" done."<<endl;
 //        cout<<"Checking for collisions..."<<endl;
 //        collision_check(tree, N, generations, existingGens+i, last_deltaX);
     }
@@ -507,7 +519,6 @@ void collision_check(Node**tree, int cols, int gens, int current_gen, double las
         }else{
             return;//return if we are at the end.
         }
-
     }
 }
 void collision_check2(Node**tree, int cols, int gens, int current_gen, double last_deltaX){
