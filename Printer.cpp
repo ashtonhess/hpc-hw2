@@ -5,7 +5,7 @@
 #include "Printer.h"
 
 void Printer::print_tree_1d(vector<Node*>tree){
-    for (int i = 0; i < tree.size(); ++i) {
+    for (long unsigned int i = 0; i < tree.size(); ++i) {
         cout<<"x: "<<tree.at(i)->x;
         cout<<"\ty: "<<tree.at(i)->y;
         cout<<"\tcol: "<<tree.at(i)->col;

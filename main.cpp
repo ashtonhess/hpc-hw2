@@ -82,12 +82,13 @@ int main(int argc, char*argv[]) {
 //    grow_tree_array_parallel2(shtree, argv, 350, startCol1, stopCol1);
 //    grow_tree_array_parallel2(shtree, argv, 350, startCol2, stopCol2);
 //    shtree[i*N+j]=testArray[j][i];
-    for (int i = 0; i < generations+7-1; ++i) {
-        for (int j = 0; j < N; ++j) {
-            cout<<"SHTREE: "<<"Col: "<<shtree[i*N+j].col<<"\tGen: "<<shtree[i*N+j].generation<<endl;
-        }
-    }
-    cout<<"PARALLEL GROW DONE"<<endl<<endl<<endl;
+    // for (int i = 0; i < generations+7-1; ++i) {
+    //     for (int j = 0; j < N; ++j) {
+    //         cout<<"SHTREE: "<<"Col: "<<shtree[i*N+j].col<<"\tGen: "<<shtree[i*N+j].generation<<endl;
+    //     }
+    // }
+    // cout<<"PARALLEL GROW DONE"<<endl<<endl<<endl;
+    auto ustart1 = chrono::high_resolution_clock::now();
     pid_t pid;
     pid = fork();
     if ( pid < 0 )
@@ -105,7 +106,10 @@ int main(int argc, char*argv[]) {
         grow_tree_array_parallel2(shtree, argv, 350, startCol2, stopCol2);
 
     }
-    std::cout << "In the parent: " << std::endl;
+    auto ustop1 = chrono::high_resolution_clock::now();
+    auto uduration1 = chrono::duration_cast<chrono::milliseconds>(ustop1-ustart1);
+    cout<<"Time (ms): "<<uduration1.count()<<endl;
+    // std::cout << "In the parent: " << std::endl;
 
     int status;	// catch the status of the child
 
@@ -115,7 +119,7 @@ int main(int argc, char*argv[]) {
         pid_t w = waitpid(pid, &status, WUNTRACED | WCONTINUED);
         if (w == -1)
         {
-            std::cerr << "Error waiting for child process ("<< pid <<")" << std::endl;
+            // std::cerr << "Error waiting for child process ("<< pid <<")" << std::endl;
             break;
         }
 
@@ -156,11 +160,13 @@ int main(int argc, char*argv[]) {
 //            cout<<"Gen: "<<testArray[j][i].generation<<"\tCol: "<<testArray[j][i].col<<"\tX: "<<testArray[j][i].x<<"\tY: "<<testArray[j][i].y<<"\tTheta: "<<testArray[j][i].theta<<"\tJ: "<<j<<"\tI: "<<i<<endl;
 //        }
 //    }
-    for (int i = 0; i < generations+7-1; ++i) {
-        for (int j = 0; j < N; ++j) {
-            cout<<"SHTREE: "<<"Col: "<<shtree[i*N+j].col<<"\tGen: "<<shtree[i*N+j].generation<<endl;
-        }
-    }
+    
+    
+    // for (int i = 0; i < generations+7-1; ++i) {
+    //     for (int j = 0; j < N; ++j) {
+    //         cout<<"SHTREE: "<<"Col: "<<shtree[i*N+j].col<<"\tGen: "<<shtree[i*N+j].generation<<endl;
+    //     }
+    // }
     writeTreeToCsv_array_single(shtree, N, generations);
 
 //    writeTreeToCsv_array(testArray, N, generations);
@@ -200,31 +206,31 @@ int main(int argc, char*argv[]) {
 //            cout<<"\ttheta: "<<tree[i][j]->theta<<endl;
 //        }
 //    }
-    FileIO fio_t = FileIO();
-//    Printer printer = Printer();
-    vector<Node*> init_data_t;
-    int nc_count_t=0;
-    int*nc_count_ptr_t=&nc_count_t;
-    init_data_t=fio_t.read_nc(argv, nc_count_ptr_t);
-//    printer.print_tree_1d(init_data_t);
-    cout<<"something"<<endl;
-    vector<vector<Node*>>tree_t = convert_2d(init_data_t,N);
-//    printer.print_tree_2d(tree_t);
-    cout<<"something2"<<endl;
+//     FileIO fio_t = FileIO();
+// //    Printer printer = Printer();
+//     vector<Node*> init_data_t;
+//     int nc_count_t=0;
+//     int*nc_count_ptr_t=&nc_count_t;
+//     init_data_t=fio_t.read_nc(argv, nc_count_ptr_t);
+// //    printer.print_tree_1d(init_data_t);
+//     cout<<"something"<<endl;
+//     vector<vector<Node*>>tree_t = convert_2d(init_data_t,N);
+// //    printer.print_tree_2d(tree_t);
+//     cout<<"something2"<<endl;
 
 
 //     TO RUN AND TIME (this is using vector)
-    FileIO fio = FileIO();
-    vector<Node*> init_data;
-    int nc_count=0;
-    int*nc_count_ptr=&nc_count;
-    auto ustart = chrono::high_resolution_clock::now();
-    init_data=fio.read_nc(argv, nc_count_ptr);
-    vector<vector<Node*>>tree = convert_2d(init_data, N);
-    grow_tree(tree, argv, nc_count);
-    auto ustop = chrono::high_resolution_clock::now();
-    auto uduration = chrono::duration_cast<chrono::seconds>(ustop-ustart);
-    cout<<"Time (s): "<<uduration.count()<<endl;
+    // FileIO fio = FileIO();
+    // vector<Node*> init_data;
+    // int nc_count=0;
+    // int*nc_count_ptr=&nc_count;
+    // auto ustart = chrono::high_resolution_clock::now();
+    // init_data=fio.read_nc(argv, nc_count_ptr);
+    // vector<vector<Node*>>tree = convert_2d(init_data, N);
+    // grow_tree(tree, argv, nc_count);
+    // auto ustop = chrono::high_resolution_clock::now();
+    // auto uduration = chrono::duration_cast<chrono::seconds>(ustop-ustart);
+    // cout<<"Time (s): "<<uduration.count()<<endl;
 //    writeTreeToCsv(tree);
 }
 
@@ -322,8 +328,8 @@ void writeTreeToCsv_array(Node** tree, int cols, int gens){
         printf("Failed to open file\n");
         return;
     }
-    for(long unsigned int i = 0; i<gens; i++){
-        for(long unsigned int j = 0; j<cols; j++){
+    for(int i = 0; i<gens; i++){
+        for(int j = 0; j<cols; j++){
             fprintf(fp,"%e,%e\n",tree[j][i].x,tree[j][i].y);
         }
     }
@@ -337,8 +343,8 @@ void writeTreeToCsv_array_single(Node* shtree, int cols, int gens){
         printf("Failed to open file\n");
         return;
     }
-    for(long unsigned int i = 0; i<gens; i++){
-        for(long unsigned int j = 0; j<cols; j++){
+    for(int i = 0; i<gens; i++){
+        for(int j = 0; j<cols; j++){
             fprintf(fp,"%e,%e\n",shtree[i*N+j].x,shtree[i*N+j].y);
         }
     }
