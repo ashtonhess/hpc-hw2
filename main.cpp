@@ -30,6 +30,7 @@ void writeTreeToCsv_array(Node** tree, int cols, int gens);
 void collision_check(Node**tree, int cols, int gens, int check_col, double last_deltaX);
 void collision_check2(Node**tree, int cols, int gens, int check_col, double last_deltaX);
 void writeTreeToCsv_array_single(Node* shtree, int cols, int gens);
+void collision_check_block(Node*shtree, int cols, int gens, int current_gen, double last_deltaX, int start_col, int end_col);
 
 int main(int argc, char*argv[]) {
     cout << "Number of arguments entered: " << argc << endl;
@@ -80,7 +81,9 @@ int main(int argc, char*argv[]) {
         grow_tree_array_parallel2(shtree, argv, 350, 0, N);
         auto ustop2 = chrono::high_resolution_clock::now();
         auto uduration2 = chrono::duration_cast<chrono::milliseconds>(ustop2-ustart2);
-    cout<<"Time (ms): "<<uduration2.count()<<endl;
+        writeTreeToCsv_array_single(shtree, N, generations);
+
+        cout<<"Time (ms): "<<uduration2.count()<<endl;
     }
     if(processes==2){
         int startCol1 = 0;
@@ -180,6 +183,8 @@ int main(int argc, char*argv[]) {
     //     }
     // }
     writeTreeToCsv_array_single(shtree, N, generations);
+        shmdt(shtree);
+        shmctl(shmId,IPC_RMID,NULL);
     }
 //    writeTreeToCsv_array(testArray, N, generations);
 
@@ -244,6 +249,7 @@ int main(int argc, char*argv[]) {
     // auto uduration = chrono::duration_cast<chrono::seconds>(ustop-ustart);
     // cout<<"Time (s): "<<uduration.count()<<endl;
 //    writeTreeToCsv(tree);
+
 }
 
 std::vector<std::vector<Node*>> convert_2d(std::vector<Node*> nodes, int N){
@@ -473,7 +479,10 @@ void grow_tree_array_parallel2(Node*shtree, char*argv[], int lines, int start_co
             //this is to propogate changes without checking for collisions
             for (int k = existingGens+i-1; k > 0; --k) {
 //                tree[j][k].x+=deltaX;
-                shtree[(k*N)+j].x+=deltaX;
+                if(prev.theta!=90){
+                    shtree[(k*N)+j].x+=deltaX;
+                }
+
 //                tree[j][k].y+=deltaY;
                 shtree[(k*N)+j].y+=deltaY;
             }
@@ -482,12 +491,56 @@ void grow_tree_array_parallel2(Node*shtree, char*argv[], int lines, int start_co
 //                tree[j][k].y+=deltaY;
 //            }
 //            collision_check2(tree, N, generations, existingGens+i, last_deltaX);
+
         }
+        collision_check_block(shtree, N, existingGens, existingGens+i, 0, start_col, end_col);
         // cout<<"Gen "<<i<<" done."<<endl;
 //        cout<<"Checking for collisions..."<<endl;
 //        collision_check(tree, N, generations, existingGens+i, last_deltaX);
     }
 //    return vector<vector<Node*>>();
+}
+void collision_check_block(Node*shtree, int cols, int gens, int current_gen, double last_deltaX, int start_col, int end_col) {
+    //    shtree[i*N+j]=testArray[j][i];
+    double epsilon = 5e-8;
+    for (int i = start_col; i < end_col; ++i) {
+//        cout<<"i: "<<i<<endl;
+        Node colTop = shtree[i];
+        if ((i ) < cols) {//if there is a next col... aka if we arent at the end of the cols for the generation.
+//            Node nextColStart = shtree[i + 1];
+            for (int j = 0; j < current_gen; ++j) {
+//                cout<<"j: "<<j<<endl;
+                if ((shtree[(j*50)+i].x - colTop.x) <=
+                    epsilon) {//if the x values are close enough to have a potential collision
+//                    cout<<"POTENTIAL COLLISION"<<endl;
+                    //use the distance formula to check for collision. (now take the y values into account)
+                    double d = sqrt(pow((shtree[(j*50)+i].x - colTop.x), 2) + pow((shtree[(j*50)+i].y - colTop.y), 2));
+//                    cout<<d<<endl;
+                    if (d <= epsilon) {
+//                        cout << "Collision detected." << endl;
+//                        cout << "Correcting cols..." << endl;
+                        //propogate changes up... correct for collision.
+//                        tree[i][current_gen].theta = 90;
+
+                        shtree[current_gen*50+i].theta=90;
+                        shtree[(current_gen-1)*50+i].theta=90;
+                        last_deltaX=shtree[((current_gen-2)*50)+i].x - shtree[((current_gen-1)*50)+i].x;
+                        if(last_deltaX!=0){
+                            cout<<"lastDX: "<<last_deltaX<<endl;
+
+                        }
+                        for (int k = current_gen; k > 0; --k) {
+//                            tree[j][k].x -= last_deltaX;
+                            shtree[(k*50)+i].x-=last_deltaX;
+                        }
+                    }
+                }
+//                cout<<"NO COLLISION"<<endl;
+            }
+        } else {
+            return;//return if we are at the end.
+        }
+    }
 }
 
 void collision_check(Node**tree, int cols, int gens, int current_gen, double last_deltaX){
