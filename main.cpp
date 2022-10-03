@@ -45,6 +45,10 @@ int main(int argc, char*argv[]) {
     int generations = stoi(argv[3]);
     int processes = stoi(argv[4]);
     cout<<"Processes: "<<processes<<endl;
+    if(processes!=1||processes!=2||processes!=4){
+        cout<<"Please enter either 1, 2, or 4 processes."<<endl;
+        return 0;
+    }
 
     Node**testArray;
     FileIO testfio = FileIO();
@@ -186,6 +190,171 @@ int main(int argc, char*argv[]) {
         shmdt(shtree);
         shmctl(shmId,IPC_RMID,NULL);
     }
+    
+    
+    if(processes==4){
+        int startCol1 = 0;
+        int stopCol1 = N/4;
+        int startCol2 = N/4;
+        int stopCol2 = N/2;
+        int startCol3 = N/2;
+        int stopCol3 = (N/4)*3;
+        int startCol4 = (N/4)*3;
+        int stopCol4 = N;
+//    grow_tree_array_parallel(testArray, argv, 350, startCol1, stopCol1);
+//    grow_tree_array_parallel(testArray, argv, 350, startCol2, stopCol2);
+//    grow_tree_array_parallel2(shtree, argv, 350, startCol1, stopCol1);
+//    grow_tree_array_parallel2(shtree, argv, 350, startCol2, stopCol2);
+//    shtree[i*N+j]=testArray[j][i];
+        // for (int i = 0; i < generations+7-1; ++i) {
+        //     for (int j = 0; j < N; ++j) {
+        //         cout<<"SHTREE: "<<"Col: "<<shtree[i*N+j].col<<"\tGen: "<<shtree[i*N+j].generation<<endl;
+        //     }
+        // }
+        // cout<<"PARALLEL GROW DONE"<<endl<<endl<<endl;
+        auto ustart1 = chrono::high_resolution_clock::now();
+        pid_t pid;
+        pid_t pid2;
+        pid = fork();
+        if ( pid < 0 )
+        {
+            std::cerr << "Could not fork!!! ("<< pid <<")" << std::endl;
+            exit(1);
+        }
+        pid2=fork();
+        if ( pid2 < 0 )
+        {
+            std::cerr << "Could not fork!!! ("<< pid <<")" << std::endl;
+            exit(1);
+        }
+        if (pid > 0 && pid2 > 0) {
+            cout << "Parent process :" << endl;
+            grow_tree_array_parallel2(shtree, argv, 350, startCol1, stopCol1);
+
+        }
+        if (pid == 0 && pid2 > 0) {
+        //first child
+            grow_tree_array_parallel2(shtree, argv, 350, startCol2, stopCol2);
+        }
+        if (pid > 0 && pid2 == 0) {
+            //second child
+            grow_tree_array_parallel2(shtree, argv, 350, startCol3, stopCol3);
+        }
+        if (pid == 0 && pid2 == 0) {
+            //third child
+            grow_tree_array_parallel2(shtree, argv, 350, startCol4, stopCol4);
+        }
+
+        std::cout << "I just forked without error, I see ("<< pid <<")" << std::endl;
+
+//        if ( pid == 0 ) // Child process
+//        {
+//            grow_tree_array_parallel2(shtree, argv, 350, startCol1, stopCol1);
+//
+//        }else{  //Parent process
+//            grow_tree_array_parallel2(shtree, argv, 350, startCol2, stopCol2);
+//        }
+        auto ustop1 = chrono::high_resolution_clock::now();
+        auto uduration1 = chrono::duration_cast<chrono::milliseconds>(ustop1-ustart1);
+        cout<<"Time (ms): "<<uduration1.count()<<endl;
+        // std::cout << "In the parent: " << std::endl;
+
+        int status;	// catch the status of the child
+
+        do  // in reality, mulptiple signals or exit status could come from the child
+        {
+
+            pid_t w = waitpid(pid, &status, WUNTRACED | WCONTINUED);
+            if (w == -1)
+            {
+                // std::cerr << "Error waiting for child process ("<< pid <<")" << std::endl;
+                break;
+            }
+
+            if (WIFEXITED(status))
+            {
+                if (status > 0)
+                {
+                    std::cerr << "Child process ("<< pid <<") exited with non-zero status of " << WEXITSTATUS(status) << std::endl;
+                    continue;
+                }
+                else
+                {
+                    std::cout << "Child process ("<< pid <<") exited with status of " << WEXITSTATUS(status) << std::endl;
+                    continue;
+                }
+            }
+            else if (WIFSIGNALED(status))
+            {
+                std::cout << "Child process ("<< pid <<") killed by signal (" << WTERMSIG(status) << ")" << std::endl;
+                continue;
+            }
+            else if (WIFSTOPPED(status))
+            {
+                std::cout << "Child process ("<< pid <<") stopped by signal (" << WSTOPSIG(status) << ")" << std::endl;
+                continue;
+            }
+            else if (WIFCONTINUED(status))
+            {
+                std::cout << "Child process ("<< pid <<") continued" << std::endl;
+                continue;
+            }
+        }
+        while (!WIFEXITED(status) && !WIFSIGNALED(status));
+//    grow_tree_array(testArray, argv, 350);
+        //printing all generations generated plus the ones that were given in initial file.
+//    for (int i = 0; i < generations+7; ++i) {
+//        for (int j = 0; j < N; ++j) {
+//            cout<<"Gen: "<<testArray[j][i].generation<<"\tCol: "<<testArray[j][i].col<<"\tX: "<<testArray[j][i].x<<"\tY: "<<testArray[j][i].y<<"\tTheta: "<<testArray[j][i].theta<<"\tJ: "<<j<<"\tI: "<<i<<endl;
+//        }
+//    }
+
+
+        // for (int i = 0; i < generations+7-1; ++i) {
+        //     for (int j = 0; j < N; ++j) {
+        //         cout<<"SHTREE: "<<"Col: "<<shtree[i*N+j].col<<"\tGen: "<<shtree[i*N+j].generation<<endl;
+        //     }
+        // }
+        writeTreeToCsv_array_single(shtree, N, generations);
+        shmdt(shtree);
+        shmctl(shmId,IPC_RMID,NULL);
+    }
+    
+    
+    
+    // if(processes==6){
+    //     int startCol1 = 0;
+    //     int stopCol1 = N/6;
+    //     int startCol2 = N/6;
+    //     int stopCol2 = 2*N/6;
+    //     int startCol3 = 2*N/6;
+    //     int stopCol3 = 3*N/6;
+    //     int startCol4 = (3*N/6);
+    //     int stopCol4 = 4*N/6;
+    //     int startCol5 = 4*N/6;
+    //     int stopCol5 = 5*N/6;
+    //     int startCol6 = 5*N/6;
+    //     int stopCol6 = 6*N/6;
+    
+    
+    // if(processes==8){
+    //     int startCol1 = 0;
+    //     int stopCol1 = N/8;
+    //     int startCol2 = N/8;
+    //     int stopCol2 = 2*N/8;
+    //     int startCol3 = 2*N/8;
+    //     int stopCol3 = 3*N/8;
+    //     int startCol4 = (3*N/8);
+    //     int stopCol4 = 4*N/8;
+    //     int startCol5 = 4*N/8;
+    //     int stopCol5 = 5*N/8;
+    //     int startCol6 = 5*N/8;
+    //     int stopCol6 = 6*N/8;
+    //     int startCol7 = 6*N/8;
+    //     int stopCol7 = 7*N/8;
+    //     int startCol8 = 7*N/8;
+    //     int stopCol8 = N;
+    
 //    writeTreeToCsv_array(testArray, N, generations);
 
 
