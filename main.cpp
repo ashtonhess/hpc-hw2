@@ -45,8 +45,8 @@ int main(int argc, char*argv[]) {
     int generations = stoi(argv[3]);
     int processes = stoi(argv[4]);
     cout<<"Processes: "<<processes<<endl;
-    if(processes!=1||processes!=2||processes!=4){
-        cout<<"Please enter either 1, 2, or 4 processes."<<endl;
+    if(processes!=1&&processes!=2&&processes!=4){
+        cout<<"Please enter 1, 2, or 4 processes."<<endl;
         return 0;
     }
 
